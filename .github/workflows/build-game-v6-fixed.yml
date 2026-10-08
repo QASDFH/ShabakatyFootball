@@ -1,0 +1,57 @@
+name: Build Shabakaty Football Game V6 Fixed
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Check V6 ZIP
+        run: |
+          test -f ShabakatyFootball_Game_V6_READY.zip
+          unzip -t ShabakatyFootball_Game_V6_READY.zip
+
+      - name: Extract V6
+        run: |
+          rm -rf game-v6
+          mkdir game-v6
+          unzip -q ShabakatyFootball_Game_V6_READY.zip -d game-v6
+
+      - name: Verify Gradle project
+        run: |
+          test -f game-v6/settings.gradle || test -f game-v6/settings.gradle.kts
+          test -f game-v6/app/build.gradle || test -f game-v6/app/build.gradle.kts
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build APK
+        working-directory: game-v6
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShabakatyFootball-Game-V6-Fixed
+          path: game-v6/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
