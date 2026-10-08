@@ -1,0 +1,56 @@
+name: Build Football Game V4
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Verify V4 project
+        run: |
+          test -f ShabakatyFootball_Game_V4_READY.zip
+          unzip -t ShabakatyFootball_Game_V4_READY.zip
+
+      - name: Extract V4 project
+        run: |
+          rm -rf game-v4
+          mkdir game-v4
+          unzip -q ShabakatyFootball_Game_V4_READY.zip -d game-v4
+          test -f game-v4/settings.gradle
+          test -f game-v4/app/build.gradle
+          test -f game-v4/app/src/main/java/com/shabakaty/game/MainActivity.java
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build V4 APK
+        working-directory: game-v4
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload V4 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShabakatyFootball-Game-V4
+          path: game-v4/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
